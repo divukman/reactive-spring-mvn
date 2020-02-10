@@ -2,6 +2,7 @@ package com.dimitar.reactive.springreactive.fluxandmono;
 
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class FluxAndMonoTest {
@@ -77,6 +78,23 @@ public class FluxAndMonoTest {
         StepVerifier.create(strFlux)
                 .expectNext("Spring", "Spring Boot", "Reactive Spring")
                 .expectErrorMessage("test error")
+                .verify();
+    }
+
+    @Test
+    public void monoTest() {
+        final Mono<String> strMono = Mono.just("Spring");
+
+        StepVerifier.create(strMono.log())
+                .expectNext("Spring")
+                .verifyComplete();
+    }
+
+    @Test
+    public void monoTestError() {
+
+        StepVerifier.create(Mono.error(new RuntimeException("mono exception")).log())
+                .expectError(RuntimeException.class)
                 .verify();
     }
 }
