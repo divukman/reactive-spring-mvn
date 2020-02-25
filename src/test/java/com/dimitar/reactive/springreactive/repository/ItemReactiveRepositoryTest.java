@@ -60,4 +60,88 @@ public class ItemReactiveRepositoryTest {
                 .expectNextMatches( itemMatch -> itemMatch.getDescription().equals("Bose Headphones"))
                 .verifyComplete();
     }
+
+
+    @Test
+    public void findItemByDescription() {
+        final Mono<Item> items = itemReactiveRepository.findByDescription("Bose Headphones").log("find by description");
+
+        StepVerifier.create(items)
+                .expectSubscription()
+                .expectNextCount(1)
+                .verifyComplete();
+
+    }
+
+
+    @Test
+    public void saveItem() {
+        final Item item = Item.builder().id(null).description("Google Home Mini").price(30d).build();
+        final Mono<Item> savedItem = itemReactiveRepository.save(item);
+
+        StepVerifier.create(savedItem.log("Saved item: "))
+                .expectSubscription()
+                .expectNextMatches(it -> it.getId() != null && it.getDescription().equals("Google Home Mini"))
+                .verifyComplete();
+    }
+
+
+    @Test
+    public void updateItem() {
+        final double newPrice = 3555d;
+
+        Mono<Item> flux = itemReactiveRepository.findByDescription("TV LG")
+                .map( item -> {
+                    item.setPrice(newPrice);
+                    return item;
+                })
+                .flatMap(item -> itemReactiveRepository.save(item))
+       ;
+
+
+        StepVerifier.create(flux)
+                .expectSubscription()
+                .expectNextMatches( it -> it.getPrice().doubleValue() == newPrice)
+                .verifyComplete();
+    }
+
+
+    @Test
+    public void deleteItemById() {
+        Mono<Void> mono = itemReactiveRepository.findById("ABC").log()
+                .map(Item::getId)
+                .flatMap( id -> {
+                    return itemReactiveRepository.deleteById(id);
+                });
+
+        StepVerifier.create(mono)
+                .expectSubscription()
+                .verifyComplete();
+
+        StepVerifier.create(itemReactiveRepository.findAll().log("New Item list: "))
+                .expectSubscription()
+                .expectNextCount(4)
+                .verifyComplete();
+    }
+
+
+    @Test
+    public void deleteItem() {
+        Mono<Void> mono = itemReactiveRepository.findByDescription("TV LG")
+                .flatMap( item ->
+                    itemReactiveRepository.delete(item)
+                );
+
+        StepVerifier.create(mono.log())
+                .expectSubscription()
+                .verifyComplete();
+
+        StepVerifier.create(itemReactiveRepository.findAll().log("New Item list: "))
+                .expectSubscription()
+                .expectNextCount(4)
+                .verifyComplete();
+    }
+
+
+
 }
