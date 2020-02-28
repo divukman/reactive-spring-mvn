@@ -15,9 +15,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ExtendWith(SpringExtension.class)
@@ -58,6 +61,49 @@ public class ItemControllerTest {
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBodyList(Item.class)
                 .hasSize(4);
+    }
+
+    @Test
+    public void getAllItemsApproach2() {
+        webTestClient.get().uri(ItemConstants.ITEM_END_POINT_V1)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBodyList(Item.class)
+                .hasSize(4)
+                .consumeWith( response -> response.getResponseBody().forEach(item -> assertTrue(item.getId() != null)));
+    }
+
+    @Test
+    public void getAllItemsApproach3() {
+        final Flux<Item> fluxItems = webTestClient.get().uri(ItemConstants.ITEM_END_POINT_V1)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .returnResult(Item.class)
+                .getResponseBody();
+
+        StepVerifier.create(fluxItems.log())
+                .expectSubscription()
+                .expectNextCount(4)
+                .verifyComplete();
+    }
+
+    @Test
+    public void getOneItem() {
+        webTestClient.get().uri(ItemConstants.ITEM_END_POINT_V1.concat("/{id}"), "ABC")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.price",2000d);
+    }
+
+
+    @Test
+    public void getOneItemInvalidItem() {
+        webTestClient.get().uri(ItemConstants.ITEM_END_POINT_V1.concat("/{id}"), "ABCDEF")
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
 }
