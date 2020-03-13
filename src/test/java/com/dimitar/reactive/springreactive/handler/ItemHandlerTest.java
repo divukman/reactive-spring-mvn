@@ -15,6 +15,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.Arrays;
@@ -100,4 +101,48 @@ public class ItemHandlerTest {
                 .expectBody()
                 .jsonPath("$.price",2000d);
     }
+
+
+
+    @Test
+    public void createItem() {
+        final Item item = Item.builder().id(null).description("Iphone X").price(5000d).build();
+        webTestClient
+                .post()
+                .uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just(item), Item.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isNotEmpty()
+                .jsonPath("$.description").isEqualTo("Iphone X")
+                .jsonPath("$.price").isEqualTo(5000d);
+    }
+
+
+
+    @Test
+    public void deleteItemV1() {
+        webTestClient
+                .delete()
+                .uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1.concat("/{id}"), "ABC")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+
+
+    @Test
+    public void testUpdateItem() {
+        double newPrice=129.99;
+        Item item = new Item(null,"Beats HeadPhones", newPrice);
+        webTestClient.put().uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1.concat("/{id}"), "DEF") //no record with this ids
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just(item), Item.class)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
 }
